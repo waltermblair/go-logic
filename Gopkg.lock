@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/assembla/cony"
+  packages = ["."]
+  revision = "dd62697b0adb9adfda8589520cb85f4cbc2361f1"
+  version = "v0.3.2"
+
+[[projects]]
   name = "github.com/gin-contrib/cors"
   packages = ["."]
   revision = "cf4846e6a636a76237a28d9286f163c132e841bc"
@@ -55,6 +61,12 @@
   version = "1.0.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/streadway/amqp"
+  packages = ["."]
+  revision = "70e15c650864f4fc47f5d3c82ea117285480895d"
+
+[[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
   revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
@@ -81,6 +93,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fc1e4d18831036ffea1e8a53762b3a50df63597df8ddc5f434bf79e5b975f738"
+  inputs-digest = "748f604c75b12acf40e98fc8b6a75c76bb49f4c6271a5f3768a19fa8715fd4b0"
   solver-name = "gps-cdcl"
   solver-version = 1

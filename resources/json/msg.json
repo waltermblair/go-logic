@@ -1,0 +1,15 @@
+{
+  "header": 1,
+  "body": {
+    "configuration": [
+      {
+        "1":{
+          "status": "up",
+          "function": "not",
+          "next-keys": [2,3]
+        }
+      }
+    ],
+    "input": [true]
+  }
+}
