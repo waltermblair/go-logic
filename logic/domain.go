@@ -1,4 +1,4 @@
-package brain
+package logic
 
 type Message struct {
 	Header 		int 		`json:"header"`
