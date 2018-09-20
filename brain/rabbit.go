@@ -10,23 +10,31 @@ import (
 
 type RabbitClient interface {
 	RunConsumer()
-	Publish(MessageBody) error
+	Publish(MessageBody, string) error
 	InitRabbit()
 }
 
 type RabbitClientImpl struct {
-	URL 	string
-	que 	*cony.Queue
-	exc    	cony.Exchange
-	bnd 	cony.Binding
-	cli     *cony.Client
-	cns     *cony.Consumer
-	pbl     *cony.Publisher
+	URL       string
+	exc       cony.Exchange
+	cli       *cony.Client
+	cns       *cony.Consumer
+	cnsQue    *cony.Queue
+	cnsBnd    cony.Binding
+	pbl       *cony.Publisher
+	pblQue    *cony.Queue
+	pblBnd    cony.Binding
+	thisQueue string
+	nextQueue string
 }
 
-func NewRabbitClient(url string) RabbitClient {
+func NewRabbitClient(url string, thisQueue string, nextQueue string) RabbitClient {
 
-	r := RabbitClientImpl{URL: url}
+	r := RabbitClientImpl{
+		URL:       url,
+		thisQueue: thisQueue,
+		nextQueue: nextQueue,
+	}
 	r.InitRabbit()
 
 	fmt.Println("Initialized rabbit client at ", r.URL)
@@ -43,13 +51,13 @@ func (r *RabbitClientImpl) RunConsumer() {
 	)
 
 	cli.Declare([]cony.Declaration{
-		cony.DeclareQueue(r.que),
+		cony.DeclareQueue(r.cnsQue),
 		cony.DeclareExchange(r.exc),
-		cony.DeclareBinding(r.bnd),
+		cony.DeclareBinding(r.cnsBnd),
 	})
 
 	// Declare and register a consumer
-	cns := cony.NewConsumer(r.que)
+	cns := cony.NewConsumer(r.cnsQue)
 
 	cli.Consume(cns)
 
@@ -67,20 +75,31 @@ func (r *RabbitClientImpl) RunConsumer() {
 
 }
 
-func (r *RabbitClientImpl) Publish(body MessageBody) error {
+func (r *RabbitClientImpl) Publish(body MessageBody, nextQueue string) error {
 
 	cli := cony.NewClient(
 		cony.URL(r.URL),
 		cony.Backoff(cony.DefaultBackoff),
 	)
 
+	r.pblQue = &cony.Queue{
+		AutoDelete: false,
+		Name:       nextQueue,
+		Durable:	true,
+	}
+	r.pblBnd = cony.Binding{
+		Queue:    r.pblQue,
+		Exchange: r.exc,
+		Key:      nextQueue,
+	}
+
 	cli.Declare([]cony.Declaration{
-		cony.DeclareQueue(r.que),
+		cony.DeclareQueue(r.pblQue),
 		cony.DeclareExchange(r.exc),
-		cony.DeclareBinding(r.bnd),
+		cony.DeclareBinding(r.pblBnd),
 	})
 
-	pbl := cony.NewPublisher(r.exc.Name, "pubSub")
+	pbl := cony.NewPublisher(r.exc.Name, nextQueue)
 	cli.Publish(pbl)
 
 	go func() {
@@ -92,8 +111,6 @@ func (r *RabbitClientImpl) Publish(body MessageBody) error {
 		}
 	}()
 
-	fmt.Println("Client publishing to exchange", r.exc.Name)
-
 	bytes, err := json.Marshal(body)
 
 	if err != nil {
@@ -101,15 +118,11 @@ func (r *RabbitClientImpl) Publish(body MessageBody) error {
 	}
 
 	go func() {
-		fmt.Println("Publishing body: ", body)
-
 		err = pbl.Publish(amqp.Publishing{
 			Body: bytes,
 		})
 		if err != nil {
 			fmt.Printf("Client publish error: %v\n", err)
-		} else {
-			fmt.Println("Done!")
 		}
 	}()
 
@@ -119,23 +132,21 @@ func (r *RabbitClientImpl) Publish(body MessageBody) error {
 
 func (r *RabbitClientImpl) InitRabbit() {
 
-	// Declarations
-	// The queue name will be supplied by the AMQP server
-	r.que = &cony.Queue{
-		AutoDelete: false,
-		Name:       "myQueue",
-		Durable:	true,
-	}
 	r.exc = cony.Exchange{
 		Name:       "myExc",
 		Kind:       "topic",
 		AutoDelete: false,
 		Durable:	true,
 	}
-	r.bnd = cony.Binding{
-		Queue:    r.que,
+	r.cnsQue = &cony.Queue{
+		AutoDelete: false,
+		Name:       r.thisQueue,
+		Durable:	true,
+	}
+	r.cnsBnd = cony.Binding{
+		Queue:    r.cnsQue,
 		Exchange: r.exc,
-		Key:      "pubSub",
+		Key:      r.thisQueue,
 	}
 
 }
