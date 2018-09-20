@@ -1,4 +1,4 @@
-package brain
+package logic
 
 import (
 	"encoding/json"
@@ -28,12 +28,11 @@ type RabbitClientImpl struct {
 	nextQueue string
 }
 
-func NewRabbitClient(url string, thisQueue string, nextQueue string) RabbitClient {
+func NewRabbitClient(url string, thisQueue string) RabbitClient {
 
 	r := RabbitClientImpl{
 		URL:       url,
 		thisQueue: thisQueue,
-		nextQueue: nextQueue,
 	}
 	r.InitRabbit()
 
@@ -65,6 +64,9 @@ func (r *RabbitClientImpl) RunConsumer() {
 		select {
 		case msg := <-cns.Deliveries():
 			log.Printf("Received body: %q\n", msg.Body)
+			var body MessageBody
+			json.Unmarshal(msg.Body, &body)
+			Process(body, r)
 			msg.Ack(false)
 		case err := <-cns.Errors():
 			fmt.Printf("Consumer error: %v\n", err)
