@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RunAPI(rabbit RabbitClient) {
+func RunAPI() {
 
 	r := gin.Default()
 
