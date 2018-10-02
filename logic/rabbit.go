@@ -9,7 +9,7 @@ import (
 )
 
 type RabbitClient interface {
-	RunConsumer()
+	RunConsumer(Processor)
 	Publish(MessageBody, string) error
 	InitRabbit()
 }
@@ -42,7 +42,7 @@ func NewRabbitClient(url string, thisQueue string) RabbitClient {
 
 }
 
-func (r *RabbitClientImpl) RunConsumer() {
+func (r *RabbitClientImpl) RunConsumer(p Processor) {
 
 	cli := cony.NewClient(
 		cony.URL(r.URL),
@@ -66,7 +66,7 @@ func (r *RabbitClientImpl) RunConsumer() {
 			log.Printf("Received body: %q\n", msg.Body)
 			var body MessageBody
 			json.Unmarshal(msg.Body, &body)
-			Process(body, r)
+			p.Process(body, r)
 			msg.Ack(false)
 		case err := <-cns.Errors():
 			fmt.Printf("Consumer error: %v\n", err)

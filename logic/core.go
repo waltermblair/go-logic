@@ -1,32 +1,46 @@
 package logic
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
-	"errors"
 )
 
-var config Config
+type Processor interface {
+	ApplyConfig(Config) (err error)
+	ApplyFunction(MessageBody) bool
+	BuildMessage(MessageBody) MessageBody
+	Process(MessageBody, RabbitClient) (err error)
+}
 
-func applyConfig(cfg Config) (err error) {
+type ProcessorImpl struct {
+	config		Config
+}
 
-	config = cfg
+func NewProcessor() Processor {
+	p := ProcessorImpl{
+		Config{},
+	}
+
+	return &p
+}
+
+func (p *ProcessorImpl) ApplyConfig(cfg Config) (err error) {
+
+	fmt.Println("received config message, applying config...")
+	p.config = cfg
+
 	return err
 
 }
 
-// todo - multiple inputs1
-func applyFunction(body MessageBody) bool {
-
-	if config.Status == "down" {
-		log.Fatal(errors.New("this component is down"))
-	}
+func (p *ProcessorImpl) ApplyFunction(body MessageBody) bool {
 
 	input := body.Input[0]
 	var output bool
 
-	switch fn := config.Function; fn {
+	switch fn := p.config.Function; fn {
 	case "buffer":
 		output = input
 	case "not":
@@ -37,9 +51,13 @@ func applyFunction(body MessageBody) bool {
 
 }
 
-func buildMessage(body MessageBody) MessageBody {
+func (p *ProcessorImpl) BuildMessage(body MessageBody) MessageBody {
 
-	output := applyFunction(body)
+	if p.config.Status == "down" {
+		log.Fatal(errors.New("this component is down"))
+	}
+
+	output := p.ApplyFunction(body)
 
 	return MessageBody{
 		Configs: []Config{},
@@ -47,20 +65,21 @@ func buildMessage(body MessageBody) MessageBody {
 	}
 }
 
-func Process(body MessageBody, rabbit RabbitClient) (err error){
+func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err error){
 
 	fmt.Println("number of configs in message: ", len(body.Configs))
-	fmt.Println("number of nextKeys: ", len(config.NextKeys))
+	fmt.Println("number of nextKeys: ", len(p.config.NextKeys))
 
-	if len(body.Configs) == 1 {
-		fmt.Println("received config message, applying config...")
-		applyConfig(body.Configs[0])
+	//  if there's a config in the message, apply it
+	configs := body.Configs
+	if len(configs) == 1 {
+		p.ApplyConfig(configs[0])
 	}
 
-	//	build and publish each message
-	for _, nextQueue := range config.NextKeys {
+	//	build and publish one message for each downstream component
+	for _, nextQueue := range p.config.NextKeys {
 
-		msg := buildMessage(body)
+		msg := p.BuildMessage(body)
 
 		fmt.Println("sending this message: ", msg, "to queue: ", nextQueue)
 

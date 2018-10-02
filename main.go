@@ -6,8 +6,9 @@ import (
 
 func main() {
 
-	rabbit := NewRabbitClient("amqp://guest:guest@localhost:5672/", "1") // todo - replace with env
-	go rabbit.RunConsumer()
-	RunAPI(rabbit)
+	rabbit := NewRabbitClient("amqp://guest:guest@localhost:5672/", "1") // TODO - replace with env from docker-compose
+	processor := NewProcessor()
+	go rabbit.RunConsumer(processor)
+	RunAPI()
 
 }
