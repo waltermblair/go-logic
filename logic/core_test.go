@@ -8,24 +8,24 @@ import (
 	. "github.com/waltermblair/logic/logic"
 	"io/ioutil"
 	"os"
+	"strconv"
 )
 
 type MockRabbitClientImpl struct {
-	URL			string
-	thisQueue	string
+	config 		Config
 }
 
-func NewMockRabbitClient(url string, thisQueue string) RabbitClient {
+func NewMockRabbitClient(cfg Config) RabbitClient {
 	r := MockRabbitClientImpl{
-		URL: 		url,
-		thisQueue:	thisQueue,
+		cfg,
 	}
 	return &r
 }
 
 func (r *MockRabbitClientImpl) RunConsumer(p Processor) {}
 func (r *MockRabbitClientImpl) Publish (m MessageBody, s string) error {
-	return errors.New("published")
+	output := strconv.FormatBool(m.Input[0])
+	return errors.New("next-key: " + s + " output: " + output)
 }
 func (r *MockRabbitClientImpl) InitRabbit() {}
 
@@ -77,21 +77,28 @@ var _ = Describe("Core", func() {
 			})
 		})
 
-		// TODO - test I'm sending right message to right nextKey
 		Describe("Process Message", func() {
 
 			var mockRabbit RabbitClient
+			var lastKey    string
+			var output	   string
 
 			BeforeEach(func() {
-				mockRabbit = NewMockRabbitClient("mock-endpoint", "1")
+				mockRabbit = NewMockRabbitClient(cfg)
+				lastKey = strconv.Itoa(cfg.NextKeys[len(cfg.NextKeys)-1])
 			})
 
-			It("should mock publish message", func() {
+			It("should apply config and mock publish output messages", func() {
+				p.ApplyConfig(msgConfig.Body.Configs[0])
+				output = strconv.FormatBool(p.ApplyFunction(msgConfig.Body))
+				result := p.Process(msgConfig.Body, mockRabbit)
+				Ω(result.Error()).Should(Equal("next-key: " + lastKey + " output: " + output))
+			})
+			It("should mock publish output messages", func() {
+				output = strconv.FormatBool(p.ApplyFunction(msg.Body))
 				result := p.Process(msg.Body, mockRabbit)
-				Ω(result.Error()).Should(Equal("published"))
+				Ω(result.Error()).Should(Equal("next-key: " + lastKey + " output: " + output))
 			})
 		})
-
 	})
-
 })

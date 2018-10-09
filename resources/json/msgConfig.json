@@ -3,11 +3,10 @@
   "body": {
     "configuration": [
       {
-        "1":{
-          "status": "up",
-          "function": "not",
-          "next-keys": [2,3]
-        }
+        "id":1,
+        "status": "up",
+        "function": "not",
+        "next-keys": [2,3]
       }
     ],
     "input": [true]

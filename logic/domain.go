@@ -13,6 +13,6 @@ type MessageBody struct {
 type Config struct {
 	ID 			int 		`json:"id"`
 	Status 		string 		`json:"status"`
-	Function 	string
-	NextKeys 	[]int
+	Function 	string		`json:"function"`
+	NextKeys 	[]int		`json:"next-keys"`
 }
