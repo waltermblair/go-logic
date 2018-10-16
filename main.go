@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	. "github.com/waltermblair/logic/logic"
 	"os"
 )
@@ -8,7 +9,9 @@ import (
 // Creates rabbit client with queue specified by env variable. Creates processor and runs services.
 func main() {
 
-	rabbit := NewRabbitClient("amqp://guest:guest@localhost:5672/", os.Getenv("THIS_QUEUE"))
+	fmt.Println("RABBIT HOST: ", os.Getenv("RABBIT_HOST"))
+	fmt.Println("THIS QUEUE: " , os.Getenv("THIS_QUEUE"))
+	rabbit := NewRabbitClient(fmt.Sprintf("amqp://guest:guest@%s:5672/", os.Getenv("RABBIT_HOST")), os.Getenv("THIS_QUEUE"))
 	processor := NewProcessor()
 	go rabbit.RunConsumer(processor)
 	RunAPI()
