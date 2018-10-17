@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/assembla/cony"
 	"github.com/streadway/amqp"
-	"log"
 )
 
 type RabbitClient interface {
@@ -63,7 +62,7 @@ func (r *RabbitClientImpl) RunConsumer(p Processor) {
 	for cli.Loop() {
 		select {
 		case msg := <-cns.Deliveries():
-			log.Printf("Received body: %q\n", msg.Body)
+			fmt.Printf("Received body: %q\n", msg.Body)
 			var body MessageBody
 			json.Unmarshal(msg.Body, &body)
 			p.Process(body, r)
