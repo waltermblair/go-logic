@@ -2,7 +2,7 @@ package logic
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"github.com/assembla/cony"
 	"github.com/streadway/amqp"
 )
@@ -35,7 +35,7 @@ func NewRabbitClient(url string, thisQueue string) RabbitClient {
 	}
 	r.InitRabbit()
 
-	fmt.Println("Initialized rabbit client at ", r.URL)
+	log.Println("Initialized rabbit client at ", r.URL)
 
 	return &r
 
@@ -62,15 +62,15 @@ func (r *RabbitClientImpl) RunConsumer(p Processor) {
 	for cli.Loop() {
 		select {
 		case msg := <-cns.Deliveries():
-			fmt.Printf("Received body: %q\n", msg.Body)
+			log.Printf("Received body: %q\n", msg.Body)
 			var body MessageBody
 			json.Unmarshal(msg.Body, &body)
 			p.Process(body, r)
 			msg.Ack(false)
 		case err := <-cns.Errors():
-			fmt.Printf("Consumer error: %v\n", err)
+			log.Printf("Consumer error: %v\n", err)
 		case err := <-cli.Errors():
-			fmt.Printf("Client error: %v\n", err)
+			log.Printf("Client error: %v\n", err)
 		}
 	}
 
@@ -107,7 +107,7 @@ func (r *RabbitClientImpl) Publish(body MessageBody, nextQueue string) error {
 		for cli.Loop() {
 			select {
 			case err := <-cli.Errors():
-				fmt.Println(err)
+				log.Println(err)
 			}
 		}
 	}()
@@ -115,7 +115,7 @@ func (r *RabbitClientImpl) Publish(body MessageBody, nextQueue string) error {
 	bytes, err := json.Marshal(body)
 
 	if err != nil {
-		fmt.Printf("Error unmarshaling MessageBody: %v\n", err)
+		log.Printf("Error unmarshaling MessageBody: %v\n", err)
 	}
 
 	go func() {
@@ -123,7 +123,7 @@ func (r *RabbitClientImpl) Publish(body MessageBody, nextQueue string) error {
 			Body: bytes,
 		})
 		if err != nil {
-			fmt.Printf("Client publish error: %v\n", err)
+			log.Printf("Client publish error: %v\n", err)
 		}
 	}()
 

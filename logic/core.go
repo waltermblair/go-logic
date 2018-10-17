@@ -2,7 +2,7 @@ package logic
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"log"
 	"strconv"
 )
@@ -28,7 +28,7 @@ func NewProcessor() Processor {
 
 func (p *ProcessorImpl) ApplyConfig(cfg Config) (err error) {
 
-	fmt.Println("received config message, applying config...")
+	log.Println("received config message, applying config...")
 	p.config = cfg
 
 	return err
@@ -67,8 +67,8 @@ func (p *ProcessorImpl) BuildMessage(body MessageBody) MessageBody {
 
 func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err error){
 
-	fmt.Println("number of configs in message: ", len(body.Configs))
-	fmt.Println("number of nextKeys: ", len(p.config.NextKeys))
+	log.Println("number of configs in message: ", len(body.Configs))
+	log.Println("number of nextKeys: ", len(p.config.NextKeys))
 
 	//  if there's a config in the message, apply it
 	configs := body.Configs
@@ -81,7 +81,7 @@ func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err erro
 
 		msg := p.BuildMessage(body)
 
-		fmt.Println("sending this message: ", msg, "to queue: ", nextQueue)
+		log.Println("sending this message: ", msg, "to queue: ", nextQueue)
 
 		err = rabbit.Publish(msg, strconv.Itoa(nextQueue))
 
