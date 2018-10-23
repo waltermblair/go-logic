@@ -57,6 +57,14 @@ var _ = Describe("Core", func() {
 			p.ApplyConfig(cfg)
 		})
 
+		Describe("Apply Config", func() {
+			It("should apply config", func() {
+				Ω(len(p.GetConfig().NextKeys)).Should(Equal(3))
+				p.ApplyConfig(Config{456, "", "", []int{1,2}})
+				Ω(len(p.GetConfig().NextKeys)).Should(Equal(2))
+			})
+		})
+
 		Describe("Apply Function", func() {
 			It("should apply buffer function", func() {
 				result := p.ApplyFunction(msg.Body)
