@@ -7,6 +7,7 @@ import (
 )
 
 type Processor interface {
+	GetConfig() Config
 	ApplyConfig(Config) (err error)
 	ApplyFunction(MessageBody) bool
 	BuildMessage(MessageBody) MessageBody
@@ -25,9 +26,12 @@ func NewProcessor() Processor {
 	return &p
 }
 
+func (p *ProcessorImpl) GetConfig() (Config) {
+	return p.config
+}
+
 func (p *ProcessorImpl) ApplyConfig(cfg Config) (err error) {
 
-	log.Println("received config message, applying config...")
 	p.config = cfg
 
 	return err
@@ -67,10 +71,10 @@ func (p *ProcessorImpl) BuildMessage(body MessageBody) MessageBody {
 func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err error){
 
 	log.Println("number of configs in message: ", len(body.Configs))
-	log.Println("number of nextKeys: ", len(p.config.NextKeys))
 
 	//  if there's a config in the message, apply it
 	configs := body.Configs
+
 	if len(configs) == 1 {
 		p.ApplyConfig(configs[0])
 	}
