@@ -6,7 +6,8 @@
         "id":1,
         "status": "up",
         "function": "not",
-        "next-keys": [2,3]
+        "next-keys": [2,3],
+        "num-inputs": 1
       }
     ],
     "input": [true]

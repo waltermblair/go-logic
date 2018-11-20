@@ -1,33 +1,50 @@
 package logic
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	"log"
 	"strconv"
 )
 
 type Processor interface {
 	GetConfig() Config
+	GetOutput() bool
+	GetNumReceived() int
 	ApplyConfig(Config) (err error)
-	ApplyFunction(MessageBody) bool
-	BuildMessage(MessageBody) MessageBody
+	ApplyFunction(MessageBody)
+	BuildMessage() (MessageBody, error)
 	Process(MessageBody, RabbitClient) (err error)
 }
 
 type ProcessorImpl struct {
 	config		Config
+	output      bool
+	numReceived int
 }
 
 func NewProcessor() Processor {
 	p := ProcessorImpl{
-		Config{},
+		Config{}, true, 0,
 	}
 
 	return &p
 }
 
+func (p *ProcessorImpl) resetInputs() {
+	p.output = true
+	p.numReceived = 0
+}
+
 func (p *ProcessorImpl) GetConfig() (Config) {
 	return p.config
+}
+
+func (p *ProcessorImpl) GetOutput() (bool) {
+	return p.output
+}
+
+func (p *ProcessorImpl) GetNumReceived() (int) {
+	return p.numReceived
 }
 
 func (p *ProcessorImpl) ApplyConfig(cfg Config) (err error) {
@@ -38,34 +55,37 @@ func (p *ProcessorImpl) ApplyConfig(cfg Config) (err error) {
 
 }
 
-func (p *ProcessorImpl) ApplyFunction(body MessageBody) bool {
+func (p *ProcessorImpl) ApplyFunction(body MessageBody) {
 
 	input := body.Input[0]
-	var output bool
 
 	switch fn := p.config.Function; fn {
 	case "buffer":
-		output = input
+		p.output = input
 	case "not":
-		output = !input
+		p.output = !input
+	case "and":
+		p.output = p.output && input
+	case "or":
+		if p.numReceived == 0 {
+			p.output = input
+		} else {
+			p.output = p.output || input
+		}
 	}
-
-	return output
 
 }
 
-func (p *ProcessorImpl) BuildMessage(body MessageBody) MessageBody {
+func (p *ProcessorImpl) BuildMessage() (MessageBody, error) {
 
 	if p.config.Status == "down" {
-		log.Fatal(errors.New("this component is down"))
+		return MessageBody{}, errors.New("this component is down")
 	}
-
-	output := p.ApplyFunction(body)
 
 	return MessageBody{
 		Configs: []Config{},
-		Input: []bool{output},
-	}
+		Input: []bool{p.output},
+	}, nil
 }
 
 func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err error){
@@ -79,15 +99,21 @@ func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err erro
 		p.ApplyConfig(configs[0])
 	}
 
-	//	build and publish one message for each downstream component
-	for _, nextQueue := range p.config.NextKeys {
+	if body.Input != nil && p.numReceived < p.config.NumInputs {
+		p.ApplyFunction(body)
+		p.numReceived += 1
+	}
 
-		msg := p.BuildMessage(body)
-
-		log.Println("sending this message: ", msg, "to queue: ", nextQueue)
-
-		err = rabbit.Publish(msg, strconv.Itoa(nextQueue))
-
+	if p.numReceived == p.config.NumInputs {
+		//	build and publish one message for each downstream component
+		for _, nextQueue := range p.config.NextKeys {
+			msg, err := p.BuildMessage()
+			if err == nil {
+				log.Println("sending this message: ", msg, "to queue: ", nextQueue)
+				err = rabbit.Publish(msg, strconv.Itoa(nextQueue))
+			}
+		}
+		p.resetInputs()
 	}
 
 	return err
