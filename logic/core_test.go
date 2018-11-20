@@ -82,8 +82,9 @@ var _ = Describe("Core", func() {
 		Describe("Build Message", func() {
 			It("should build message with output true", func() {
 				p.ApplyFunction(msg.Body)
-				result := p.BuildMessage()
+				result, err := p.BuildMessage()
 				Ω(result.Input[0]).Should(BeTrue())
+				Ω(err).Should(BeNil())
 			})
 		})
 
@@ -103,13 +104,13 @@ var _ = Describe("Core", func() {
 				p.ApplyFunction(msgConfig.Body)
 				output = strconv.FormatBool(p.GetOutput())
 				result := p.Process(msgConfig.Body, mockRabbit)
-				Ω(result.Error()).Should(Equal("next-key: " + lastKey + " output: " + output))
+				Ω(result).Should(BeNil())
 			})
 			It("should mock publish output messages", func() {
 				p.ApplyFunction(msg.Body)
 				output = strconv.FormatBool(p.GetOutput())
 				result := p.Process(msg.Body, mockRabbit)
-				Ω(result.Error()).Should(Equal("next-key: " + lastKey + " output: " + output))
+				Ω(result).Should(BeNil())
 			})
 		})
 	})
@@ -142,7 +143,7 @@ var _ = Describe("Core", func() {
 				result := p.Process(msg.Body, mockRabbit)
 				result = p.Process(msg.Body, mockRabbit)
 				output = strconv.FormatBool(p.GetOutput())
-				Ω(result.Error()).Should(Equal("next-key: " + lastKey + " output: " + output))
+				Ω(result).Should(BeNil())
 			})
 		})
 	})

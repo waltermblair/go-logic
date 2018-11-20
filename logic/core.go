@@ -1,7 +1,7 @@
 package logic
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	"log"
 	"strconv"
 )
@@ -12,7 +12,7 @@ type Processor interface {
 	GetNumReceived() int
 	ApplyConfig(Config) (err error)
 	ApplyFunction(MessageBody)
-	BuildMessage() MessageBody
+	BuildMessage() (MessageBody, error)
 	Process(MessageBody, RabbitClient) (err error)
 }
 
@@ -76,16 +76,16 @@ func (p *ProcessorImpl) ApplyFunction(body MessageBody) {
 
 }
 
-func (p *ProcessorImpl) BuildMessage() MessageBody {
+func (p *ProcessorImpl) BuildMessage() (MessageBody, error) {
 
 	if p.config.Status == "down" {
-		log.Fatal(errors.New("this component is down"))
+		return MessageBody{}, errors.New("this component is down")
 	}
 
 	return MessageBody{
 		Configs: []Config{},
 		Input: []bool{p.output},
-	}
+	}, nil
 }
 
 func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err error){
@@ -107,9 +107,11 @@ func (p *ProcessorImpl) Process(body MessageBody, rabbit RabbitClient) (err erro
 	if p.numReceived == p.config.NumInputs {
 		//	build and publish one message for each downstream component
 		for _, nextQueue := range p.config.NextKeys {
-			msg := p.BuildMessage()
-			log.Println("sending this message: ", msg, "to queue: ", nextQueue)
-			err = rabbit.Publish(msg, strconv.Itoa(nextQueue))
+			msg, err := p.BuildMessage()
+			if err == nil {
+				log.Println("sending this message: ", msg, "to queue: ", nextQueue)
+				err = rabbit.Publish(msg, strconv.Itoa(nextQueue))
+			}
 		}
 		p.resetInputs()
 	}

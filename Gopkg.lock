@@ -117,6 +117,12 @@
   version = "v1.4.2"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/streadway/amqp"
   packages = ["."]
@@ -196,6 +202,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "85d67689c674395f46d03ece09b65e3b8fc5a2f3bfe7270b6ea68043e3f74402"
+  inputs-digest = "0e5374ef4d1e2c0b188002e15f5ba48f42afc6150592fe508ebc438bf52359de"
   solver-name = "gps-cdcl"
   solver-version = 1
